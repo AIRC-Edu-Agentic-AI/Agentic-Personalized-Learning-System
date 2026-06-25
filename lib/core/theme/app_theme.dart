@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
   // ── Dark palette ────────────────────────────────────────────────────────────
@@ -63,6 +64,7 @@ class AppTheme {
   // ── Dark ThemeData ───────────────────────────────────────────────────────────
   static ThemeData get dark => ThemeData(
         useMaterial3: true,
+      fontFamily: GoogleFonts.poppins().fontFamily,
         brightness: Brightness.dark,
         colorScheme: const ColorScheme.dark(
           brightness: Brightness.dark,
