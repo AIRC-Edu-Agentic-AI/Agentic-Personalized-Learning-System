@@ -21,6 +21,11 @@ from .message import (
     add_channel_message,
 )
 
+# Settings functions
+from .course_settings import (
+    archive_course,
+    update_course_settings,
+)
 
 __all__ = [
     # Course
@@ -35,4 +40,7 @@ __all__ = [
     # Message
     "get_channel_messages",
     "add_channel_message",
+    # Settings
+    "archive_course",
+    "update_course_settings",
 ]
