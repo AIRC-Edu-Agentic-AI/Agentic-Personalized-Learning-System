@@ -5,6 +5,7 @@ import 'package:student_agent/core/config/env_config.dart';
 import 'package:student_agent/data/services/api_service.dart';
 import 'package:student_agent/models/assignment_milestone_model.dart';
 import 'package:student_agent/models/chat_message_model.dart';
+import 'package:student_agent/models/course_model.dart';
 import 'package:student_agent/models/student_model.dart';
 import 'package:student_agent/providers/auth_provider.dart';
 
@@ -98,7 +99,37 @@ final studyPlanProvider =
   final studentId = ref.read(activeStudentIdProvider);
   return api.getStudyPlan(studentId);
 });
+// ── Course communication / channels ─────────────────────────────────────────
+final studentCoursesProvider =
+    FutureProvider<List<CourseModel>>((ref) async {
+  final api = ref.read(apiServiceProvider);
+  final studentId = ref.read(activeStudentIdProvider);
+  return api.getStudentCourses(studentId);
+});
 
+final courseInfoProvider =
+    FutureProvider.family<CourseModel, String>((ref, courseCode) async {
+  final api = ref.read(apiServiceProvider);
+  return api.getCourseInfo(courseCode);
+});
+
+final courseChannelsProvider =
+    FutureProvider.family<List<CourseChannel>, String>((ref, courseCode) async {
+  final api = ref.read(apiServiceProvider);
+  return api.getCourseChannels(courseCode);
+});
+
+final courseChannelProvider =
+    FutureProvider.family<CourseChannel, String>((ref, channelId) async {
+  final api = ref.read(apiServiceProvider);
+  return api.getChannel(channelId);
+});
+
+final channelMessagesProvider =
+    FutureProvider.family<List<CourseMessage>, String>((ref, channelId) async {
+  final api = ref.read(apiServiceProvider);
+  return api.getChannelMessages(channelId);
+});
 // ── Resources ─────────────────────────────────────────────────────────────────
 final resourcesProvider =
     FutureProvider<List<Map<String, dynamic>>>((ref) async {
