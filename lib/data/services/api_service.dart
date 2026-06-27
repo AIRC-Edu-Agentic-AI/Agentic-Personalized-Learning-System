@@ -6,6 +6,7 @@ import 'package:student_agent/models/assignment_milestone_model.dart';
 import 'package:student_agent/models/course_model.dart';
 import 'package:student_agent/models/student_model.dart';
 
+import 'package:student_agent/data/mock/mock_message_store.dart';
 class ApiService {
   
   late final Dio _dio;
@@ -185,39 +186,60 @@ class ApiService {
   }
 
   Future<List<CourseMessage>> getChannelMessages(String channelId,
-      {String? parentId}) async {
-    if (_useMock) return [];
-    try {
-      final res = await _dio.get('/course/course-communication/$channelId/messages',
-          queryParameters: parentId == null ? null : {'parent_id': parentId});
-      return (res.data as List)
-          .map((message) => CourseMessage.fromJson(Map<String, dynamic>.from(message)))
-          .toList();
-    } catch (_) {
-      _useMock = true;
-      return [];
-    }
+    {String? parentId}) async {
+  if (_useMock) {
+    return MockMessageStore.allFor(channelId, parentId: parentId);
   }
+  try {
+    final res = await _dio.get(
+      '/course/course-communication/$channelId/messages',
+      queryParameters: parentId == null ? null : {'parent_id': parentId},
+    );
+    return (res.data as List)
+        .map((message) =>
+            CourseMessage.fromJson(Map<String, dynamic>.from(message)))
+        .toList();
+  } catch (_) {
+    _useMock = true;
+    return MockMessageStore.allFor(channelId, parentId: parentId);
+  }
+}
 
   Future<CourseMessage?> postChannelMessage({
-    required String channelId,
-    required int senderId,
-    required String content,
-    String? parentId,
-  }) async {
-    if (_useMock) return null;
-    try {
-      final res = await _dio.post('/course/course-communication/$channelId/messages', data: {
+  required String channelId,
+  required int senderId,
+  required String content,
+  String? parentId,
+}) async {
+  if (_useMock) {
+    final msg = CourseMessage(
+      id: 'mock_post_${DateTime.now().microsecondsSinceEpoch}',
+      channelId: channelId,
+      courseCode: MockMessageStore.courseCodeFromChannelId(channelId),
+      senderId: senderId,
+      senderRole: 'student',
+      content: content.trim(),
+      createdAt: DateTime.now(),
+      parentId: parentId,
+    );
+    MockMessageStore.add(msg);
+    return msg;
+  }
+  try {
+    final res = await _dio.post(
+      '/course/course-communication/$channelId/messages',
+      data: {
         'sender_id': senderId,
         'content': content,
         if (parentId != null) 'parent_id': parentId,
-      });
-      return CourseMessage.fromJson(Map<String, dynamic>.from(res.data));
-    } catch (_) {
-      _useMock = true;
-      return null;
-    }
+      },
+    );
+    return CourseMessage.fromJson(Map<String, dynamic>.from(res.data));
+  } catch (_) {
+    _useMock = true;
+    return null;
   }
+}
 
   Future<bool> addChannelReaction(
       String messageId, int userId, String emoji) async {

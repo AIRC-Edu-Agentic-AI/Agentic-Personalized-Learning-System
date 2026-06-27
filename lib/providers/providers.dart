@@ -127,9 +127,43 @@ final courseChannelProvider =
 
 final channelMessagesProvider =
     FutureProvider.family<List<CourseMessage>, String>((ref, channelId) async {
-  final api = ref.read(apiServiceProvider);
-  return api.getChannelMessages(channelId);
+  return ref.watch(
+    channelThreadMessagesProvider(
+      ChannelMessagesArgs(channelId: channelId),
+    ).future,
+  );
 });
+
+class ChannelMessagesArgs {
+  final String channelId;
+  final String? parentId;
+
+  const ChannelMessagesArgs({
+    required this.channelId,
+    this.parentId,
+  });
+
+  @override
+  bool operator ==(Object other) =>
+      other is ChannelMessagesArgs &&
+      other.channelId == channelId &&
+      other.parentId == parentId;
+
+  @override
+  int get hashCode => Object.hash(channelId, parentId);
+}
+
+final channelThreadMessagesProvider =
+    FutureProvider.family<List<CourseMessage>, ChannelMessagesArgs>(
+  (ref, args) async {
+    final api = ref.read(apiServiceProvider);
+    return api.getChannelMessages(
+      args.channelId,
+      parentId: args.parentId,
+    );
+  },
+);
+
 // ── Resources ─────────────────────────────────────────────────────────────────
 final resourcesProvider =
     FutureProvider<List<Map<String, dynamic>>>((ref) async {
