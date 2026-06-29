@@ -1,0 +1,131 @@
+import 'package:dio/dio.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:student_agent/core/config/env_config.dart';
+import 'package:student_agent/data/services/study_group_service.dart';
+import 'package:student_agent/models/study_group_model.dart';
+import 'package:student_agent/providers/auth_provider.dart';
+
+final studyGroupServiceProvider = Provider<StudyGroupService>((ref) {
+  final token = ref.watch(authNotifierProvider).state.token;
+  return StudyGroupService(
+    dio: Dio(
+      BaseOptions(
+        baseUrl: EnvConfig.apiBaseUrl,
+        headers: token != null ? {'Authorization': 'Bearer $token'} : {},
+      ),
+    ),
+  );
+});
+
+// ── Active student ID ──
+final activeStudentIdProvider = Provider<int>((ref) {
+  return ref.watch(authNotifierProvider).state.studentId ?? 0;
+});
+
+// ── My Groups ──
+final myGroupsProvider = FutureProvider<List<StudyGroup>>((ref) async {
+  final service = ref.read(studyGroupServiceProvider);
+  final studentId = ref.read(activeStudentIdProvider);
+  if (studentId == 0) return [];
+  return service.getMyGroups(studentId);
+});
+
+// ── Group Detail ──
+final groupDetailProvider = FutureProvider.family<StudyGroup, String>(
+    (ref, groupId) async {
+  final service = ref.read(studyGroupServiceProvider);
+  final studentId = ref.read(activeStudentIdProvider);
+  if (studentId == 0) throw Exception('Not logged in');
+  return service.getGroupDetail(groupId: groupId, studentId: studentId);
+});
+
+// ── Group Messages ──
+final groupMessagesProvider = FutureProvider.family<List<GroupMessage>, String>(
+    (ref, groupId) async {
+  final service = ref.read(studyGroupServiceProvider);
+  final studentId = ref.read(activeStudentIdProvider);
+  if (studentId == 0) return [];
+  return service.getMessages(groupId: groupId, studentId: studentId);
+});
+
+// ── Group Resources ──
+final groupResourcesProvider = FutureProvider.family<List<GroupResource>, String>(
+    (ref, groupId) async {
+  final service = ref.read(studyGroupServiceProvider);
+  final studentId = ref.read(activeStudentIdProvider);
+  if (studentId == 0) return [];
+  return service.getResources(groupId: groupId, studentId: studentId);
+});
+
+// ── Create Group ──
+final createGroupProvider = FutureProvider.family<StudyGroup, Map<String, dynamic>>(
+    (ref, params) async {
+  final service = ref.read(studyGroupServiceProvider);
+  final studentId = ref.read(activeStudentIdProvider);
+  if (studentId == 0) throw Exception('Not logged in');
+  return service.createGroup(
+    studentId: studentId,
+    name: params['name'] as String,
+    description: params['description'] as String? ?? '',
+  );
+});
+
+// ── Join Group ──
+final joinGroupProvider = FutureProvider.family<StudyGroup, String>(
+    (ref, groupCode) async {
+  final service = ref.read(studyGroupServiceProvider);
+  final studentId = ref.read(activeStudentIdProvider);
+  if (studentId == 0) throw Exception('Not logged in');
+  return service.joinGroup(studentId: studentId, groupCode: groupCode);
+});
+
+// ── Send Message ──
+final sendGroupMessageProvider = FutureProvider.family<GroupMessage, Map<String, dynamic>>(
+    (ref, params) async {
+  final service = ref.read(studyGroupServiceProvider);
+  final studentId = ref.read(activeStudentIdProvider);
+  if (studentId == 0) throw Exception('Not logged in');
+  
+  // ⭐ SỬA: Xác định type dưới dạng String
+  String typeStr = 'text';
+  if (params['type'] is String) {
+    typeStr = params['type'] as String;
+  } else if (params['type'] is GroupMessageType) {
+    typeStr = (params['type'] as GroupMessageType).apiValue;
+  }
+  
+  return service.sendMessage(
+    groupId: params['groupId'] as String,
+    studentId: studentId,
+    content: params['content'] as String,
+    fileUrl: params['fileUrl'] as String?,
+    fileName: params['fileName'] as String?,
+    fileSize: params['fileSize'] as int?,
+    fileType: params['fileType'] as String?,
+    type: typeStr,  // ⭐ Truyền String
+  );
+});
+
+// ── Add Resource ──
+final addGroupResourceProvider = FutureProvider.family<GroupResource, Map<String, dynamic>>(
+    (ref, params) async {
+  final service = ref.read(studyGroupServiceProvider);
+  final studentId = ref.read(activeStudentIdProvider);
+  if (studentId == 0) throw Exception('Not logged in');
+  return service.addResource(
+    groupId: params['groupId'] as String,
+    studentId: studentId,
+    title: params['title'] as String,
+    type: params['type'] as GroupResourceType,
+    url: params['url'] as String,
+  );
+});
+
+// ── Leave Group ──
+final leaveGroupProvider = FutureProvider.family<void, String>((ref, groupId) async {
+  final service = ref.read(studyGroupServiceProvider);
+  final studentId = ref.read(activeStudentIdProvider);
+  if (studentId == 0) throw Exception('Not logged in');
+  await service.leaveGroup(groupId: groupId, studentId: studentId);
+  ref.invalidate(myGroupsProvider);
+});
