@@ -500,7 +500,8 @@ class _FeatureGrid extends StatelessWidget {
     context.go(
       '/course/${enrollment.codeModule}/channels/$channelId/messages'
       '?name=${Uri.encodeComponent(name)}'
-      '&type=${Uri.encodeComponent(type)}',
+      '&type=${Uri.encodeComponent(type)}'
+      '&returnTo=${Uri.encodeComponent('/my-class/${enrollment.codeModule}')}',
     );
   }
 }

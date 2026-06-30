@@ -101,9 +101,11 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: ':channelId/messages', // Đuôi path nối tiếp, không cần lặp lại đoạn của cha
                 builder: (ctx, state) => CourseChannelMessagesScreen(
-                  courseCode: state.pathParameters['courseCode']!, // Vẫn lấy được tham số của cha
+                  courseCode: state.pathParameters['courseCode']!,
                   channelId: state.pathParameters['channelId']!,
                   channelName: state.uri.queryParameters['name'],
+                  channelType: state.uri.queryParameters['type'],
+                  returnTo: state.uri.queryParameters['returnTo'],
                 ),
               ),
             ],
