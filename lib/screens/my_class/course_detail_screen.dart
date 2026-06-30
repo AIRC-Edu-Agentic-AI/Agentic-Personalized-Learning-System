@@ -34,7 +34,7 @@ class CourseDetailScreen extends ConsumerWidget {
         ),
         error: (e, _) => Center(
           child: Text(
-            'Loi tai lop hoc: $e',
+            'Lỗi tại lớp học: $e',
             style: const TextStyle(color: AppTheme.danger),
           ),
         ),
@@ -46,7 +46,7 @@ class CourseDetailScreen extends ConsumerWidget {
           if (enrollment == null) {
             return const Center(
               child: Text(
-                'Khong tim thay lop hoc',
+                'Không tìm thấy lớp học',
                 style: TextStyle(color: AppTheme.textSecondary),
               ),
             );
@@ -57,7 +57,7 @@ class CourseDetailScreen extends ConsumerWidget {
             children: [
               _Header(enrollment: enrollment, student: student),
               const SizedBox(height: 16),
-              _SectionTitle(title: 'Khong gian lop hoc'),
+              _SectionTitle(title: 'Không gian lớp học'),
               const SizedBox(height: 10),
               channelsAsync.when(
                 loading: () => const LinearProgressIndicator(minHeight: 2),
@@ -71,7 +71,7 @@ class CourseDetailScreen extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: 18),
-              _SectionTitle(title: 'Bai tap gan day'),
+              _SectionTitle(title: 'Bài tập gần đây'),
               const SizedBox(height: 10),
               ..._pendingAssessments(enrollment)
                   .take(3)
@@ -80,9 +80,9 @@ class CourseDetailScreen extends ConsumerWidget {
                         courseCode: enrollment.codeModule,
                       )),
               if (_pendingAssessments(enrollment).isEmpty)
-                const _EmptyPanel(text: 'Khong co bai tap dang cho nop'),
+                const _EmptyPanel(text: 'Không có bài tập đang chờ nộp'),
               const SizedBox(height: 18),
-              _SectionTitle(title: 'Diem mon hoc'),
+              _SectionTitle(title: 'Điểm môn học'),
               const SizedBox(height: 10),
               _GradesPreview(enrollment: enrollment),
             ],
@@ -138,7 +138,7 @@ class CourseGradesScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return _CourseDataScaffold(
       courseCode: courseCode,
-      title: 'Diem mon hoc',
+      title: 'Điểm môn học',
       builder: (enrollment, _) => ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -163,7 +163,7 @@ class CourseProgressScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return _CourseDataScaffold(
       courseCode: courseCode,
-      title: 'Tien do hoc tap',
+      title: 'Tiến độ học tập',
       builder: (enrollment, student) {
         final submitted =
             enrollment.assessments.where((a) => a.isSubmitted).length;
@@ -177,19 +177,19 @@ class CourseProgressScreen extends ConsumerWidget {
             const SizedBox(height: 16),
             _ProgressTile(
               icon: Icons.assignment_turned_in_outlined,
-              label: 'Tien do nop bai',
+              label: 'Tiến độ nộp bài',
               value: '${(progress * 100).round()}%',
               color: AppTheme.accentGreen,
             ),
             _ProgressTile(
               icon: Icons.touch_app_outlined,
-              label: 'Tong tuong tac VLE',
+              label: 'Tổng tương tác VLE',
               value: '${enrollment.vleSummary.totalClicks}',
               color: AppTheme.primaryBlue,
             ),
             _ProgressTile(
               icon: Icons.warning_amber_outlined,
-              label: 'Diem rui ro tong quan',
+              label: 'Điểm rủi ro tổng quan',
               value: '${(student.risk.score * 100).round()}%',
               color: student.risk.tier >= 3
                   ? AppTheme.danger
@@ -233,7 +233,7 @@ class CourseExamsScreen extends ConsumerWidget {
               ),
             ),
             if (fallback.isEmpty)
-              const _EmptyPanel(text: 'Chua co lich thi cho mon nay'),
+              const _EmptyPanel(text: 'Chưa có lịch thi cho môn này'),
           ],
         );
       },
@@ -282,7 +282,7 @@ class _CourseDataScaffold extends ConsumerWidget {
           if (enrollment == null) {
             return const Center(
               child: Text(
-                'Khong tim thay lop hoc',
+                'Không tim thấy lớp học',
                 style: TextStyle(color: AppTheme.textSecondary),
               ),
             );
@@ -369,21 +369,21 @@ class _Header extends StatelessWidget {
                   children: [
                     Expanded(
                       child: _Metric(
-                        label: 'Da nop',
+                        label: 'Đã nộp',
                         value: '$submitted/$total',
                         color: AppTheme.accentGreen,
                       ),
                     ),
                     Expanded(
                       child: _Metric(
-                        label: 'Rui ro',
+                        label: 'Rủi ro',
                         value: '${(student.risk.score * 100).round()}%',
                         color: tierColor,
                       ),
                     ),
                     Expanded(
                       child: _Metric(
-                        label: 'Hoat dong',
+                        label: 'Hoạt động',
                         value: 'N${enrollment.vleSummary.lastActiveDay}',
                         color: AppTheme.primaryBlue,
                       ),
@@ -439,54 +439,54 @@ class _FeatureGrid extends StatelessWidget {
       children: [
         _FeatureTile(
           icon: Icons.campaign_outlined,
-          title: 'Thong bao',
-          subtitle: 'Cap nhat tu lop',
+          title: 'Thông báo',
+          subtitle: 'Cập nhật từ lớp',
           color: AppTheme.warning,
           onTap: () => _openChannel(
             context,
             enrollment,
             channelId('announcement'),
-            'Thong bao lop',
+            'Thông báo lớp',
             'announcement',
           ),
         ),
         _FeatureTile(
           icon: Icons.forum_outlined,
-          title: 'Thao luan',
-          subtitle: 'Nhan tin voi lop',
+          title: 'Thảo luận',
+          subtitle: 'Nhắn tin với lớp',
           color: AppTheme.primaryBlue,
           onTap: () => _openChannel(
             context,
             enrollment,
             channelId('discussion'),
-            'Thao luan',
+            'Thảo luận',
             'discussion',
           ),
         ),
         _FeatureTile(
           icon: Icons.assignment_outlined,
           title: 'Assignments',
-          subtitle: '${enrollment.assessments.length} bai danh gia',
+          subtitle: '${enrollment.assessments.length} bài đánh giá',
           color: AppTheme.accentGreen,
           onTap: () => context.go('/my-class/${enrollment.codeModule}/assignments'),
         ),
         _FeatureTile(
           icon: Icons.grade_outlined,
-          title: 'Diem',
-          subtitle: 'Diem thanh phan',
+          title: 'Điểm',
+          subtitle: 'Điểm thành phần',
           color: AppTheme.warning,
           onTap: () => context.go('/my-class/${enrollment.codeModule}/grades'),
         ),
         _FeatureTile(
           icon: Icons.trending_up_rounded,
-          title: 'Tien do',
-          subtitle: 'Hoat dong hoc tap',
+          title: 'Tiến độ',
+          subtitle: 'Hoạt động học tập',
           color: AppTheme.primaryBlue,
           onTap: () => context.go('/my-class/${enrollment.codeModule}/progress'),
         ),
         _FeatureTile(
           icon: Icons.event_note_outlined,
-          title: 'Lich thi',
+          title: 'Lịch thi',
           subtitle: 'Exam va deadline',
           color: AppTheme.danger,
           onTap: () => context.go('/my-class/${enrollment.codeModule}/exams'),
@@ -620,7 +620,7 @@ class _AssessmentTile extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    'Han nop: ngay ${assessment.dueDate}',
+                    'Hạn nộp: ngày ${assessment.dueDate}',
                     style: const TextStyle(
                       color: AppTheme.textSecondary,
                       fontSize: 12,
@@ -646,7 +646,7 @@ class _GradesPreview extends StatelessWidget {
   Widget build(BuildContext context) {
     final graded = enrollment.assessments.where((a) => a.score != null).toList();
     if (graded.isEmpty) {
-      return const _EmptyPanel(text: 'Chua co diem thanh phan');
+      return const _EmptyPanel(text: 'Chưa có điểm thành phần');
     }
 
     return Column(
@@ -753,8 +753,8 @@ class _AssignmentCard extends ConsumerWidget {
                     ),
                     Text(
                       assessment.isSubmitted
-                          ? 'Da nop ngay ${assessment.submittedDate}'
-                          : 'Han nop: ngay ${assessment.dueDate}',
+                          ? 'Đã nộp: ngày ${assessment.submittedDate}'
+                          : 'Hạn nộp: ngày ${assessment.dueDate}',
                       style: const TextStyle(
                         color: AppTheme.textSecondary,
                         fontSize: 12,
@@ -781,7 +781,7 @@ class _AssignmentCard extends ConsumerWidget {
               child: OutlinedButton.icon(
                 onPressed: () => _openDetail(context),
                 icon: const Icon(Icons.upload_rounded, size: 16),
-                label: const Text('Nop bai'),
+                label: const Text('Nộp bài'),
               ),
             ),
             const SizedBox(height: 6),
@@ -792,7 +792,7 @@ class _AssignmentCard extends ConsumerWidget {
                 if (data.isEmpty) {
                   return OutlinedButton.icon(
                     icon: const Icon(Icons.auto_awesome_rounded, size: 16),
-                    label: const Text('Len ke hoach chi tiet'),
+                    label: const Text('Lên kế hoạch chi tiết'),
                     onPressed: () async {
                       final api = ref.read(apiServiceProvider);
                       await api.triggerBreakdown(
@@ -874,7 +874,7 @@ class _GradesSummary extends StatelessWidget {
         children: [
           Expanded(
             child: _Metric(
-              label: 'Diem hien tai',
+              label: 'Điểm hiện tại',
               value: average == null ? '--' : '${average.round()}%',
               color: average == null || average >= 40
                   ? AppTheme.accentGreen
@@ -883,7 +883,7 @@ class _GradesSummary extends StatelessWidget {
           ),
           Expanded(
             child: _Metric(
-              label: 'Trong so da cham',
+              label: 'Trong số đã chấm',
               value: '${gradedWeight.round()}%',
               color: AppTheme.primaryBlue,
             ),
