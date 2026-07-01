@@ -664,6 +664,16 @@ class _ContinueLearningSection extends StatelessWidget {
             border: Border.all(color: AppTheme.cardBorder, width: 1),
           ),
           child: Column(
+            children: preview.asMap().entries.map((entry) {
+              final session = entry.value;
+              return Column(
+                children: [
+                  if (entry.key > 0)
+                    const Divider(height: 0, indent: 14, endIndent: 14),
+                  _StudySessionTile(session: session),
+                ],
+              );
+            }).toList(),
           ),
         ),
       ],
@@ -671,6 +681,66 @@ class _ContinueLearningSection extends StatelessWidget {
   }
 }
 
+class _StudySessionTile extends StatelessWidget {
+  final Map<String, dynamic> session;
+
+  const _StudySessionTile({required this.session});
+
+  @override
+  Widget build(BuildContext context) {
+    final type = (session['type'] ?? '').toString();
+    final color = switch (type) {
+      'assignment' => AppTheme.danger,
+      'practice' => AppTheme.warning,
+      'spaced_rep' => AppTheme.accentGreen,
+      _ => AppTheme.primaryBlue,
+    };
+
+    return Padding(
+      padding: const EdgeInsets.all(12),
+      child: Row(
+        children: [
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(Icons.menu_book_rounded, size: 17, color: color),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  (session['subject'] ?? '').toString(),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: AppTheme.textPrimary,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                Text(
+                  '${session['day']} - ${session['time']} - ${session['duration']} phut',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: AppTheme.textSecondary,
+                    fontSize: 11,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
 
 class _NotificationsSection extends ConsumerWidget {
   final List<NotificationModel> notifications;
