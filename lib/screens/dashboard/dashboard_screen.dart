@@ -217,7 +217,14 @@ class DashboardScreen extends ConsumerWidget {
                     data: (schedule) => ThisWeekSection(schedule: schedule),
                   ),
                   const SizedBox(height: 16),
-                  
+
+                  // ── 7. Enrollments ──────────────────────────────────
+                  planAsync.when(
+                    loading: () => const SizedBox.shrink(),
+                    error: (_, __) => const SizedBox.shrink(),
+                    data: (sessions) =>
+                        _ContinueLearningSection(sessions: sessions),
+                  ),
                 ]),
               ),
             ),
@@ -611,6 +618,59 @@ class _HealthMetric extends StatelessWidget {
     );
   }
 }
+
+class _ContinueLearningSection extends StatelessWidget {
+  final List<Map<String, dynamic>> sessions;
+
+  const _ContinueLearningSection({required this.sessions});
+
+  @override
+  Widget build(BuildContext context) {
+    if (sessions.isEmpty) return const SizedBox.shrink();
+    final preview = sessions.take(3).toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              'Tiếp tục học',
+              style: TextStyle(
+                color: AppTheme.textPrimary,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            GestureDetector(
+              onTap: () => context.go('/study-plan'),
+              child: const Text(
+                'Xem kế hoạch',
+                style: TextStyle(
+                  color: AppTheme.primaryBlue,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Container(
+          decoration: BoxDecoration(
+            color: AppTheme.surfaceCard,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: AppTheme.cardBorder, width: 1),
+          ),
+          child: Column(
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 
 class _NotificationsSection extends ConsumerWidget {
   final List<NotificationModel> notifications;
