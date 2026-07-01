@@ -17,6 +17,7 @@ class DashboardScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final studentAsync = ref.watch(studentProvider);
     final scheduleAsync = ref.watch(weeklyScheduleProvider);
+    final planAsync = ref.watch(studyPlanProvider);
     final notifAsync = ref.watch(notificationProvider);
     final unreadCount = ref.watch(unreadCountProvider);
     final isMock = ref.watch(isMockModeProvider);
@@ -168,8 +169,14 @@ class DashboardScreen extends ConsumerWidget {
                   const SizedBox(height: 16),
 
                   // ── 2. Risk + Academic progress ─────────────────────
-                  _RiskCard(student: student),
-                  const SizedBox(height: 10),
+                  scheduleAsync.when(
+                    loading: () => const _PriorityCard.loading(),
+                    error: (_, __) => const SizedBox.shrink(),
+                    data: (schedule) =>
+                        _PriorityCard(schedule: schedule, student: student),
+                  ),
+                  const SizedBox(height: 16),
+
                   scheduleAsync.when(
                     loading: () => const AcademicProgressCard.loading(),
                     error: (_, __) => const SizedBox.shrink(),
@@ -208,9 +215,7 @@ class DashboardScreen extends ConsumerWidget {
                     data: (schedule) => ThisWeekSection(schedule: schedule),
                   ),
                   const SizedBox(height: 16),
-
-                  // ── 7. Enrollments ──────────────────────────────────
-                  _EnrollmentsSection(enrollments: student.enrollments),
+          
                 ]),
               ),
             ),
@@ -372,6 +377,132 @@ class _RiskCard extends StatelessWidget {
 }
 
 // ── Notifications (compact dashboard preview) ─────────────────────────────────
+class _PriorityCard extends StatelessWidget {
+  final WeeklySchedule? schedule;
+  final StudentModel? student;
+  final bool _isLoading;
+
+  const _PriorityCard({
+    required this.schedule,
+    required this.student,
+  }) : _isLoading = false;
+
+  const _PriorityCard.loading()
+      : schedule = null,
+        student = null,
+        _isLoading = true;
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading) {
+      return Container(
+        height: 116,
+        decoration: BoxDecoration(
+          color: AppTheme.surfaceCard,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppTheme.cardBorder, width: 1),
+        ),
+        child: const Center(
+          child: CircularProgressIndicator(
+            strokeWidth: 2,
+            color: AppTheme.primaryBlue,
+          ),
+        ),
+      );
+    }
+
+    final urgent = _pickPriority(schedule!);
+    final risk = student!.risk;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            AppTheme.warning.withValues(alpha: 0.20),
+            AppTheme.primaryBlue.withValues(alpha: 0.10),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppTheme.warning.withValues(alpha: 0.32)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 46,
+            height: 46,
+            decoration: BoxDecoration(
+              color: AppTheme.warningGlow,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(
+              Icons.priority_high_rounded,
+              color: AppTheme.warning,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Uu tien hom nay',
+                  style: TextStyle(
+                    color: AppTheme.textSecondary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  urgent?.title ?? risk.tierLabel,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: AppTheme.textPrimary,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  urgent?.subtitle ??
+                      'Diem rui ro: ${(risk.score * 100).round()}%',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: AppTheme.textSecondary,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          TextButton(
+            onPressed: () => context.go('/study-plan'),
+            child: const Text('Mở kế hoạch'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  WeekItem? _pickPriority(WeeklySchedule schedule) {
+    final items = [
+      ...schedule.assignments,
+      ...schedule.exams,
+      ...schedule.lectures,
+      ...schedule.classes,
+    ]..sort((a, b) {
+        if (a.isUrgent != b.isUrgent) return a.isUrgent ? -1 : 1;
+        return a.dateTime.compareTo(b.dateTime);
+      });
+    return items.isEmpty ? null : items.first;
+  }
+}
+
 class _NotificationsSection extends ConsumerWidget {
   final List<NotificationModel> notifications;
   const _NotificationsSection({required this.notifications});
