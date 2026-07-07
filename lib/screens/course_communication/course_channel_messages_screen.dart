@@ -124,7 +124,7 @@ extends ConsumerState<CourseChannelMessagesScreen> {
       setState(() => _sending = false);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Không gửi được tin nhắn. Vui lòng kiểm tra kết nối backend.'),
+          content: Text('Không gửi được tin nhắn. Vui lòng kiểm tra mã sinh viên hoặc quyền trong kênh.'),
         ),
       );
       return;

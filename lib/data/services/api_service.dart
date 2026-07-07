@@ -236,8 +236,11 @@ class ApiService {
       },
     );
     return CourseMessage.fromJson(Map<String, dynamic>.from(res.data));
-  } catch (_) {
-    _useMock = true;
+  } on DioException catch (e) {
+    print('POST MESSAGE ERROR = ${e.response?.statusCode} ${e.response?.data}');
+    if (e.response == null) {
+      _useMock = true;
+    }
     return null;
   }
 }

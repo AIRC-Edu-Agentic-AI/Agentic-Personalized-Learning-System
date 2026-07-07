@@ -37,7 +37,19 @@ async def add_channel_message(db, channel_id: str, sender_id: int, content: str,
         raise ValueError("Course not found")
     user_role = get_user_role(course, sender_id)
     if user_role is None:
-        raise PermissionError("Sender is not enrolled in the course")
+        student = await db.students.find_one({
+            "student_id": sender_id,
+            "enrollments.code_module": channel.get("course_code"),
+        })
+        if student is not None:
+            await db.courses.update_one(
+                {"course_code": channel.get("course_code")},
+                {"$addToSet": {"members": sender_id}},
+            )
+            course = await db.courses.find_one({"course_code": channel.get("course_code")})
+            user_role = get_user_role(course, sender_id)
+    if user_role is None:
+        raise PermissionError(f"Sender {sender_id} is not enrolled in course {channel.get('course_code')}")
     if course.get("status") == COURSE_STATUS_ARCHIVED:
         raise PermissionError("Course communication is archived")
 

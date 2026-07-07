@@ -18,7 +18,7 @@ class AuthService {
   }
 
   Future<AuthState> login(int studentId, String password) async {
-    if (EnvConfig.useMockData || EnvConfig.isDemoEnv) {
+    if (EnvConfig.useMockData) {
       return _saveSession(studentId, 'demo_$studentId');
     }
 
