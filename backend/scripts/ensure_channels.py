@@ -24,7 +24,7 @@ async def main():
     db = client[MONGODB_DB]
 
     # import the helper from the package
-    from db import course_communication
+    from backend import course_communication
 
     courses = await db.courses.find({}).to_list(length=1000)
     print(f"Found {len(courses)} courses. Ensuring channels...")

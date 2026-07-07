@@ -3,7 +3,7 @@
 from fastapi import APIRouter, HTTPException
 
 from db.mongodb import get_db
-from db.course_communication import (
+from backend.course_communication import (
     get_channel,
     get_course_channels,
 )

@@ -4,7 +4,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from db.mongodb import get_db
-from db.course_communication import (
+from backend.course_communication import (
     enroll_student_in_course,
     get_course,
     get_student_courses,
