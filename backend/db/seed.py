@@ -32,6 +32,7 @@ load_dotenv()
 MONGODB_URI = os.getenv("MONGODB_URI", "")
 MONGODB_DB  = os.getenv("MONGODB_DB", "student_agent_db")
 STUDENT_ID  = 28400
+SECOND_STUDENT_ID = 28401
 
 # Current module day approximation: week 7, mid-week → day 46
 CURRENT_DAY = 46
@@ -339,6 +340,107 @@ RESOURCES = [
 ]
 
 
+def _make_second_student() -> dict:
+    """Create a second demo account with a healthier academic profile."""
+    student = copy.deepcopy(STUDENT)
+    student["auth0_id"] = f"auth0|demo_{SECOND_STUDENT_ID}"
+    student["student_id"] = SECOND_STUDENT_ID
+    student["full_name"] = "Trần Thị Bình"
+    student["short_name"] = "Bình"
+    student["demographics"]["gender"] = "F"
+    student["demographics"]["region"] = "Đà Nẵng"
+    student["risk"] = {
+        "tier": 1,
+        "score": 0.24,
+        "flags": ["steady_engagement"],
+        "computed_at": datetime.now(timezone.utc).isoformat(),
+    }
+    student["prerequisite_gaps"] = []
+
+    score_overrides = {
+        "DATA201": [78, 82, None, None],
+        "MATH102": [86, 80, None],
+        "COMP101": [92, 88, None],
+        "STAT110": [84, None, None],
+    }
+    for enrollment in student["enrollments"]:
+        course_code = enrollment["code_module"]
+        enrollment["vle_summary"]["last_active_day"] = CURRENT_DAY
+        enrollment["vle_summary"]["total_clicks"] += 900
+        enrollment["vle_summary"]["weekly_clicks"] = [
+            260, 300, 340, 380, 420, 460, 510, *([0] * 23)
+        ]
+        for assessment, score in zip(
+            enrollment["assessments"],
+            score_overrides.get(course_code, []),
+        ):
+            assessment["score"] = score
+            if score is not None:
+                assessment["submitted_date"] = max(assessment["due_date"] - 1, 1)
+
+    return student
+
+
+def _clone_student_doc(doc: dict, student_id: int) -> dict:
+    cloned = copy.deepcopy(doc)
+    cloned["student_id"] = student_id
+    cloned["updated_at"] = datetime.now(timezone.utc).isoformat()
+    return cloned
+
+
+def _clone_student_list(docs: list[dict], student_id: int) -> list[dict]:
+    return [_clone_student_doc(doc, student_id) for doc in docs]
+
+
+SECOND_STUDENT = _make_second_student()
+SECOND_TIMETABLE = _clone_student_doc(TIMETABLE, SECOND_STUDENT_ID)
+SECOND_TIMETABLE["streak_days"] = 21
+SECOND_STUDY_PLAN = _clone_student_doc(STUDY_PLAN, SECOND_STUDENT_ID)
+SECOND_KNOWLEDGE_STATES = _clone_student_doc(KNOWLEDGE_STATES, SECOND_STUDENT_ID)
+SECOND_KNOWLEDGE_STATES["states"] = {
+    "Thống kê cơ bản": {"mastery": 0.82, "last_updated": "2025-01-21", "evidence_count": 6},
+    "Đại số tuyến tính": {"mastery": 0.76, "last_updated": "2025-01-21", "evidence_count": 5},
+    "Hồi quy tuyến tính": {"mastery": 0.80, "last_updated": "2025-01-22", "evidence_count": 7},
+    "Kiểm định giả thuyết": {"mastery": 0.71, "last_updated": "2025-01-22", "evidence_count": 4},
+}
+SECOND_MILESTONES = _clone_student_doc(MILESTONES, SECOND_STUDENT_ID)
+for milestone in SECOND_MILESTONES["milestones"]:
+    if milestone["id"] in {"m1", "m2", "m3"}:
+        milestone["status"] = "done"
+SECOND_RISK_HISTORY = _clone_student_doc(RISK_HISTORY, SECOND_STUDENT_ID)
+SECOND_RISK_HISTORY["entries"] = [
+    {"week": 1, "score": 0.31, "tier": 1},
+    {"week": 2, "score": 0.28, "tier": 1},
+    {"week": 3, "score": 0.25, "tier": 1},
+    {"week": 4, "score": 0.26, "tier": 1},
+    {"week": 5, "score": 0.23, "tier": 1},
+    {"week": 6, "score": 0.22, "tier": 1},
+    {"week": 7, "score": 0.24, "tier": 1},
+]
+SECOND_RESOURCES = _clone_student_list(RESOURCES, SECOND_STUDENT_ID)
+
+DEMO_ACCOUNTS = [
+    {
+        "student": STUDENT,
+        "timetable": TIMETABLE,
+        "study_plan": STUDY_PLAN,
+        "knowledge_states": KNOWLEDGE_STATES,
+        "milestones": MILESTONES,
+        "risk_history": RISK_HISTORY,
+        "resources": RESOURCES,
+    },
+    {
+        "student": SECOND_STUDENT,
+        "timetable": SECOND_TIMETABLE,
+        "study_plan": SECOND_STUDY_PLAN,
+        "knowledge_states": SECOND_KNOWLEDGE_STATES,
+        "milestones": SECOND_MILESTONES,
+        "risk_history": SECOND_RISK_HISTORY,
+        "resources": SECOND_RESOURCES,
+    },
+]
+
+
 # ── Reusable seed routine ───────────────────────────────────────────────────────
 
 DEMO_COLLECTIONS = [
@@ -349,34 +451,71 @@ DEMO_COLLECTIONS = [
 
 
 async def seed_demo(db) -> dict:
-    """Idempotently reset one demo student to the known at-risk state.
+    """Idempotently reset demo students to known test states.
 
-    Clears the student's docs across all demo collections (including
+    Clears the students' docs across all demo collections (including
     notifications — which resets the 24h agent dedup window) and re-inserts a
     fresh dataset. Safe to call repeatedly. Returns a small summary.
 
     Takes a live `db` handle (motor database) so it can be reused by both the
     CLI (`python db/seed.py`) and the dashboard endpoint (`POST /admin/demo/run`).
     """
+    student_ids = [account["student"]["student_id"] for account in DEMO_ACCOUNTS]
     cleared = {}
     for col in DEMO_COLLECTIONS:
-        result = await db[col].delete_many({"student_id": STUDENT_ID})
+        result = await db[col].delete_many({"student_id": {"$in": student_ids}})
         cleared[col] = result.deleted_count
 
     # deepcopy so motor's _id injection never mutates the module-level templates
-    await db.students.insert_one(copy.deepcopy(STUDENT))
-    await db.timetable_blocks.insert_one(copy.deepcopy(TIMETABLE))
-    await db.study_plans.insert_one(copy.deepcopy(STUDY_PLAN))
-    await db.knowledge_states.insert_one(copy.deepcopy(KNOWLEDGE_STATES))
-    await db.risk_history.insert_one(copy.deepcopy(RISK_HISTORY))
-    await db.assignment_milestones.insert_one(copy.deepcopy(MILESTONES))
-    await db.resources.insert_many([copy.deepcopy(r) for r in RESOURCES])
+    inserted_students = []
+    for account in DEMO_ACCOUNTS:
+        student = copy.deepcopy(account["student"])
+        student_id = student["student_id"]
+        inserted_students.append(student)
+
+        await db.students.insert_one(student)
+        await db.timetable_blocks.insert_one(copy.deepcopy(account["timetable"]))
+        await db.study_plans.insert_one(copy.deepcopy(account["study_plan"]))
+        await db.knowledge_states.insert_one(copy.deepcopy(account["knowledge_states"]))
+        await db.risk_history.insert_one(copy.deepcopy(account["risk_history"]))
+        await db.assignment_milestones.insert_one(copy.deepcopy(account["milestones"]))
+        await db.resources.insert_many([copy.deepcopy(r) for r in account["resources"]])
+
+        # Course communication permissions are checked against the `courses`
+        # collection, not `students.enrollments`, so keep both views in sync.
+        from db.course_communication.course import ensure_course
+
+        for enrollment in student.get("enrollments", []):
+            course_code = enrollment.get("code_module")
+            if not course_code:
+                continue
+            await ensure_course(
+                db,
+                course_code,
+                enrollment.get("title") or course_code,
+                enrollment.get("code_presentation") or "",
+                enrollment.get("code_presentation") or "2024A",
+                instructor_ids=[10001],
+                class_rep_ids=[28501],
+            )
+            await db.courses.update_one(
+                {"course_code": course_code},
+                {"$addToSet": {"members": student_id}},
+            )
 
     return {
-        "student_id": STUDENT_ID,
+        "student_ids": student_ids,
         "cleared": cleared,
         "risk_score": STUDENT["risk"]["score"],
-        "modules": [e["code_module"] for e in STUDENT["enrollments"]],
+        "accounts": [
+            {
+                "student_id": student["student_id"],
+                "name": student["full_name"],
+                "risk_score": student["risk"]["score"],
+                "modules": [e["code_module"] for e in student["enrollments"]],
+            }
+            for student in inserted_students
+        ],
     }
 
 
@@ -397,8 +536,14 @@ async def seed() -> None:
 
     db = client[MONGODB_DB]
     summary = await seed_demo(db)
-    print(f"  Reset student {summary['student_id']} (risk {summary['risk_score']}), "
-          f"modules: {', '.join(summary['modules'])}")
+
+    for account in summary["accounts"]:
+        print(
+            f"  Reset student {account['student_id']} "
+            f"(risk {account['risk_score']}), "
+            f"modules: {', '.join(account['modules'])}"
+        )
+
     print(f"  Cleared: {summary['cleared']}")
 
     print()
